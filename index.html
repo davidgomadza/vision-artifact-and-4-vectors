@@ -1,0 +1,309 @@
+
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Vision Artifact — Four Vectors & Wings</title>
+  <style>
+    :root{
+      --bg:#030217; --card:#071229; --accent:#6EE7F3; --gold:#FFD166; --lapis:#2b63a3;
+    }
+    html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,Arial;color:#e8f0ff}
+    body{background:radial-gradient(1200px 600px at 10% 10%, rgba(60,90,140,0.08), transparent), linear-gradient(180deg,#001026 0%, #000814 100%);overflow:hidden}
+    header{position:absolute;left:16px;top:12px;z-index:50}
+    header h1{margin:0;font-size:18px;letter-spacing:0.6px}
+    header p{margin:6px 0 0 0;font-size:12px;opacity:0.9}#ui{position:fixed;right:12px;top:12px;width:360px;background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));border-radius:12px;padding:12px;backdrop-filter:blur(6px);box-shadow:0 6px 24px rgba(0,0,0,0.6);z-index:60}
+.row{display:flex;gap:8px;align-items:center;margin:8px 0}
+label{font-size:12px;min-width:120px}
+input[type=range]{flex:1}
+button{background:linear-gradient(90deg,var(--accent),#9be7ff);border:0;padding:8px 10px;border-radius:8px;color:#021;cursor:pointer;font-weight:600}
+button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--accent)}
+
+#canvas{display:block;width:100vw;height:100vh}
+#overlayText{position:fixed;left:12px;bottom:12px;width:36%;background:linear-gradient(180deg, rgba(0,0,0,0.5), rgba(0,0,0,0.35));padding:12px;border-radius:10px;font-size:13px;line-height:1.4}
+#legend{position:fixed;left:12px;top:72px;background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;font-size:12px}
+.compass{width:120px;height:120px;border-radius:50%;border:3px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;position:relative}
+.compass .needle{position:absolute;width:2px;height:46px;background:linear-gradient(#ffd166,#ff8a00);transform-origin:50% 90%;}
+.small{font-size:11px;opacity:0.9}
+
+footer{position:fixed;right:12px;bottom:12px;font-size:12px;opacity:0.85}
+
+/* responsive */
+@media (max-width:900px){#ui{width:92vw;right:4%;top:auto;bottom:12px}#overlayText{width:86%}}
+
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Vision Artifact — Four Vectors & Wings (Amplified)</h1>
+    <p class="small">Interactive, adjustable — wings, nested wheels, alignment presets, and compass.</p>
+  </header>  <div id="ui">
+    <div class="row"><label>Global Speed</label><input id="speed" type="range" min="0" max="3" step="0.01" value="1"></div>
+    <div class="row"><label>Outer Wheel Speed</label><input id="outerSpeed" type="range" min="-2" max="2" step="0.01" value="0.25"></div>
+    <div class="row"><label>Inner Wheel Revolutions/sec</label><input id="innerSpeed" type="range" min="0.1" max="4" step="0.01" value="0.6"></div>
+    <div class="row"><label>Wing Amp (28° group)</label><input id="wing28" type="range" min="0" max="60" value="28"></div>
+    <div class="row"><label>Wing Amp (33° group)</label><input id="wing33" type="range" min="0" max="70" value="33"></div>
+    <div class="row"><label>Perimeter Radius</label><input id="radius" type="range" min="50" max="600" value="220"></div>
+    <div class="row"><label>Shape Rotation</label><input id="shapeRot" type="range" min="-2" max="2" step="0.01" value="0.8"></div><div class="row"><button id="playPause">Pause</button><button id="reset" class="ghost">Reset</button></div>
+
+<div style="display:flex;gap:8px;margin-top:8px;align-items:center;justify-content:space-between">
+  <div style="display:flex;gap:8px">
+    <button id="alignTrue" class="ghost">Align True North (0°)</button>
+    <button id="alignNE" class="ghost">Align 28° NE</button>
+    <button id="alignSW" class="ghost">Align -28° SW</button>
+  </div>
+</div>
+
+<div style="margin-top:10px;font-size:12px;opacity:0.95">Inner wheel behavior: <strong>8 rev → pause → 8 rev (reverse)</strong>. Toggle pause or change inner speed.</div>
+
+  </div><canvas id="canvas"></canvas>
+
+  <div id="legend">
+    <div class="compass" id="compass">
+      <div style="position:absolute;top:8px;left:8px;font-size:11px">N</div>
+      <div style="position:absolute;bottom:8px;right:8px;font-size:11px">S</div>
+      <div style="position:absolute;left:8px;bottom:46px;font-size:11px">W</div>
+      <div style="position:absolute;right:8px;bottom:46px;font-size:11px">E</div>
+      <div class="needle" id="needle"></div>
+    </div>
+    <div style="margin-top:8px;font-size:12px">Heading: <span id="heading">0°</span></div>
+  </div>  <div id="overlayText">
+    <strong>Vision Narrative (Ezekiel 1:23–28)</strong>
+    <p style="margin:8px 0 0 0; font-size:13px; line-height:1.35">23 Under the vault their wings were stretched out one toward the other, and each had two wings covering its body.<br>
+    24 When the creatures moved, I heard the sound of their wings, like the roar of rushing waters, like the voice of the Almighty, like the tumult of an army. When they stood still, they lowered their wings.<br>
+    25 Then there came a voice from above the vault over their heads as they stood with lowered wings.<br>
+    26 Above the vault over their heads was what looked like a throne of lapis lazuli, and high above on the throne was a figure like that of a man.<br>
+    27 I saw that from what appeared to be his waist up he looked like glowing metal, as if full of fire, and that from there down he looked like fire; and brilliant light surrounded him.<br>
+    28 Like the appearance of a rainbow in the clouds on a rainy day, so was the radiance around him.</p>
+  </div>  <footer>Made for you — amplified & adjustable. Tip: use alignment presets to force one encounter near N → 28° NE → -28° SW.</footer><script>
+  // Canvas setup
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  function resize(){canvas.width = innerWidth; canvas.height = innerHeight}
+  addEventListener('resize',resize); resize();
+
+  // Controls
+  const speedEl = document.getElementById('speed');
+  const outerSpeedEl = document.getElementById('outerSpeed');
+  const innerSpeedEl = document.getElementById('innerSpeed');
+  const wing28El = document.getElementById('wing28');
+  const wing33El = document.getElementById('wing33');
+  const radiusEl = document.getElementById('radius');
+  const shapeRotEl = document.getElementById('shapeRot');
+  const playPauseBtn = document.getElementById('playPause');
+  const resetBtn = document.getElementById('reset');
+  const alignTrue = document.getElementById('alignTrue');
+  const alignNE = document.getElementById('alignNE');
+  const alignSW = document.getElementById('alignSW');
+  const headingEl = document.getElementById('heading');
+  const needle = document.getElementById('needle');
+
+  let t = 0;
+  let running = true;
+  let globalSpeed = parseFloat(speedEl.value);
+
+  // inner wheel state machine
+  let innerAngle = 0; // radians
+  let innerState = 'runCW'; // 'runCW' -> 'pause' -> 'runCCW' -> 'pause'
+  let innerRevCount = 0; // counts completed revs
+  let innerTargetRevs = 8;
+
+  // outer wheel
+  let outerAngle = 0;
+
+  // movement trajectory
+  let orbitTheta = 0;
+
+  // shape base rotation
+  let baseRotation = 0;
+
+  // event hookups
+  speedEl.oninput = ()=> globalSpeed = parseFloat(speedEl.value);
+  outerSpeedEl.oninput = ()=>{};
+
+  function reset(){
+    t = 0; innerAngle = 0; innerState='runCW'; innerRevCount=0; outerAngle=0; orbitTheta=0; baseRotation=0;
+  }
+
+  playPauseBtn.onclick = ()=>{running = !running; playPauseBtn.textContent = running? 'Pause' : 'Play'};
+  resetBtn.onclick = ()=>{reset()};
+
+  alignTrue.onclick = ()=> alignToDeg(0);
+  alignNE.onclick = ()=> alignToDeg(28);
+  alignSW.onclick = ()=> alignToDeg(-28);
+
+  function alignToDeg(deg){
+    // Smoothly set baseRotation so that the 0-th vector (face 0) points to deg
+    // baseRotation is radians added to entire shape. We animate a short ease.
+    const target = deg * Math.PI/180;
+    const start = baseRotation;
+    const duration = 600; // ms
+    const startT = performance.now();
+    function step(now){
+      const p = Math.min(1,(now-startT)/duration);
+      baseRotation = start + (target - start) * (0.5 - 0.5*Math.cos(Math.PI*p));
+      if(p<1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function drawThrone(x,y,scale,rot){
+    ctx.save(); ctx.translate(x,y); ctx.rotate(rot); ctx.scale(scale,scale);
+    // lapis throne
+    ctx.beginPath(); ctx.rect(-44,-22,88,44); ctx.fillStyle = '#0f3b66'; ctx.fill();
+    // fire-man silhouette (abstract)
+    ctx.beginPath(); ctx.moveTo(0,-40); ctx.quadraticCurveTo(14,-18,0,-4); ctx.quadraticCurveTo(-14,-18,0,-40);
+    ctx.fillStyle = 'rgba(255,160,40,0.9)'; ctx.fill();
+    // radiant halo
+    for(let i=0;i<6;i++){
+      ctx.beginPath(); ctx.arc(0,0,40 + i*6,0,Math.PI*2); ctx.strokeStyle = 'rgba(255,220,180,'+ (0.05+i*0.02) +')'; ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    const centerX = canvas.width/2;
+    const centerY = canvas.height/2 - 20;
+
+    // compute orbit center for the whole shape
+    const R = parseFloat(radiusEl.value);
+    orbitTheta += 0.002 * globalSpeed;
+    const cx = centerX + R * Math.cos(orbitTheta*0.8);
+    const cy = centerY + R/3 * Math.sin(orbitTheta*1.1);
+
+    // update outer wheel angle
+    const outerSpeed = parseFloat(outerSpeedEl.value);
+    outerAngle += outerSpeed * 0.02 * globalSpeed;
+
+    // update inner wheel according to state machine (rads per frame)
+    const innerRps = parseFloat(innerSpeedEl.value);
+    const innerRadsPerFrame = innerRps * 2*Math.PI * 0.016 * globalSpeed; // approx per frame
+
+    if(innerState === 'runCW'){
+      innerAngle += innerRadsPerFrame;
+      if(innerAngle >= 2*Math.PI){ innerAngle -= 2*Math.PI; innerRevCount += 1; }
+      if(innerRevCount >= innerTargetRevs){ innerState='pause'; innerPauseStart = performance.now(); }
+    } else if(innerState === 'runCCW'){
+      innerAngle -= innerRadsPerFrame;
+      if(innerAngle <= -2*Math.PI){ innerAngle += 2*Math.PI; innerRevCount += 1; }
+      if(innerRevCount >= innerTargetRevs){ innerState='pause'; innerPauseStart = performance.now(); }
+    } else if(innerState === 'pause'){
+      const elapsed = performance.now() - innerPauseStart;
+      if(elapsed > 700){ // 700ms pause
+        innerRevCount = 0;
+        innerState = (innerStatePrev === 'runCW' || innerStatePrev === undefined) ? 'runCCW' : 'runCW';
+      }
+    }
+
+    // ensure we flip state properly (we track previous)
+    if(typeof innerStatePrev === 'undefined') innerStatePrev = 'runCW';
+    if(innerState !== 'pause') innerStatePrev = innerState;
+
+    // compute heading (direction of the shape's forward vector)
+    baseRotation += parseFloat(shapeRotEl.value) * 0.003 * globalSpeed;
+    const headingRad = (baseRotation + outerAngle) % (Math.PI*2);
+    const headingDeg = Math.round((headingRad * 180/Math.PI + 360) % 360 - 180);
+    headingEl.textContent = headingDeg + '°';
+    needle.style.transform = `rotate(${headingDeg}deg)`;
+
+    // draw glow and ground
+    ctx.save();
+    // soft glow under shape
+    const g = ctx.createRadialGradient(cx,cy+40,10,cx,cy+40,300);
+    g.addColorStop(0,'rgba(160,220,255,0.06)'); g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(cx,cy+80,240,80,0,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+
+    // draw the nested wheels
+    ctx.save(); ctx.translate(cx,cy);
+
+    // outer major wheel
+    ctx.save(); ctx.rotate(outerAngle);
+    ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0,0,130,0,Math.PI*2);
+    ctx.strokeStyle = 'rgba(110,231,243,0.9)'; ctx.stroke();
+    // ticks
+    for(let i=0;i<24;i++){ ctx.save(); ctx.rotate(i*(Math.PI*2/24)); ctx.beginPath(); ctx.moveTo(110,0); ctx.lineTo(130,0); ctx.strokeStyle='rgba(110,231,243,0.12)'; ctx.stroke(); ctx.restore(); }
+    ctx.restore();
+
+    // inner wheel that does 8 revs cw then pause then 8 ccw
+    ctx.save(); ctx.rotate(innerAngle);
+    ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0,0,70,0,Math.PI*2);
+    ctx.strokeStyle = 'rgba(255,173,66,0.95)'; ctx.stroke();
+    // spokes
+    for(let s=0;s<8;s++){ ctx.save(); ctx.rotate(s*(Math.PI*2/8)); ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,70); ctx.strokeStyle='rgba(255,173,66,0.25)'; ctx.stroke(); ctx.restore(); }
+    ctx.restore();
+
+    // four vectors + wings
+    ctx.save(); ctx.rotate(baseRotation);
+    const wing28deg = parseFloat(wing28El.value) * Math.PI/180;
+    const wing33deg = parseFloat(wing33El.value) * Math.PI/180;
+    for(let i=0;i<4;i++){
+      ctx.save();
+      const angle = i*(Math.PI/2);
+      ctx.rotate(angle);
+
+      // vector (side)
+      ctx.beginPath(); ctx.moveTo(-14,10); ctx.lineTo(0,-160); ctx.lineTo(14,10);
+      ctx.fillStyle = 'rgba(255,255,255,0.02)'; ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth=2; ctx.stroke();
+
+      // dynamic wing flapping using eased sine
+      const phase = t*0.015 + i*0.6;
+      const flap28 = Math.sin(phase*1.6) * wing28deg * (0.9 + 0.1*Math.sin(t*0.003));
+      const flap33 = Math.sin(phase*1.2 + 1.2) * wing33deg * (0.95 + 0.05*Math.cos(t*0.004));
+
+      // two sideways wings (28° group)
+      ctx.save(); ctx.translate(0,-80); ctx.rotate(flap28);
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.bezierCurveTo(40,-18,70,-58,110,-72); ctx.strokeStyle='rgba(110,231,243,0.92)'; ctx.lineWidth=4; ctx.stroke();
+      ctx.restore();
+
+      ctx.save(); ctx.translate(0,-80); ctx.rotate(-flap28);
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.bezierCurveTo(-40,-18,-70,-58,-110,-72); ctx.strokeStyle='rgba(110,231,243,0.92)'; ctx.lineWidth=4; ctx.stroke();
+      ctx.restore();
+
+      // two center wings (33° group)
+      ctx.save(); ctx.translate(0,-60); ctx.rotate(flap33);
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(28,-36,58,-64); ctx.strokeStyle='rgba(255,215,130,0.95)'; ctx.lineWidth=3; ctx.stroke();
+      ctx.restore();
+
+      ctx.save(); ctx.translate(0,-60); ctx.rotate(-flap33);
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(-28,-36,-58,-64); ctx.strokeStyle='rgba(255,215,130,0.95)'; ctx.lineWidth=3; ctx.stroke();
+      ctx.restore();
+
+      // little label for the face
+      ctx.save(); ctx.translate(0,-180); ctx.rotate(-baseRotation - angle);
+      ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.font='12px Inter'; ctx.textAlign='center'; ctx.fillText(['Man','Lion','Ox','Eagle'][i],0,0);
+      ctx.restore();
+
+      ctx.restore();
+    }
+    ctx.restore();
+
+    // draw a small throne above (lapis) with radiant figure
+    drawThrone(cx, cy - 240, 1.0, 0);
+
+    ctx.restore();
+
+    // increase time
+    if(running) t += 1.6 * globalSpeed;
+
+    requestAnimationFrame(draw);
+  }
+
+  // start
+  requestAnimationFrame(draw);
+
+  // small polish: allow clicking canvas to nudge heading
+  canvas.addEventListener('click', (e)=>{
+    const dx = e.clientX - canvas.width/2;
+    const dy = e.clientY - canvas.height/2;
+    const deg = Math.atan2(dy,dx) * 180/Math.PI;
+    alignToDeg(deg);
+  });
+
+</script></body>
+</html> 
